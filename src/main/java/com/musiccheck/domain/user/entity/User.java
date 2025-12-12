@@ -63,6 +63,11 @@ public class User {
         return this;
     }
 
+    public void setSpotifyConnected(Boolean connected) {
+        this.spotifyConnected = connected;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public String getRoleKey() {
         return this.role != null ? this.role.getKey() : Role.GUEST.getKey();
     }
