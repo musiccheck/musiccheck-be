@@ -9,7 +9,7 @@ public class UserDto {
     private String email;
     private String profile;
     private String role;
-    private Boolean spotifyConnected;
+    private String spotifyConnected;
 
 
     public UserDto(User user) {

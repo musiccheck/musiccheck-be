@@ -33,7 +33,7 @@ public class User {
     private String profile;
 
     @Column(name = "spotify_connected")
-    private Boolean spotifyConnected = false;
+    private String spotifyConnected = "no";
 
     @Transient
     private Role role;
@@ -64,7 +64,7 @@ public class User {
     }
 
     public void setSpotifyConnected(Boolean connected) {
-        this.spotifyConnected = connected;
+        this.spotifyConnected = connected ? "yes" : "no";
         this.updatedAt = LocalDateTime.now();
     }
 
