@@ -32,6 +32,9 @@ public class User {
     @Column(name = "profile")
     private String profile;
 
+    @Column(name = "spotify_connected")
+    private Boolean spotifyConnected = false;
+
     @Transient
     private Role role;
 

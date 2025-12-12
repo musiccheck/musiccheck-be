@@ -9,11 +9,15 @@ public class UserDto {
     private String email;
     private String profile;
     private String role;
+    private Boolean spotifyConnected;
+
 
     public UserDto(User user) {
         this.name = user.getName();
         this.email = user.getEmail();
         this.profile = user.getProfile();
         this.role = user.getRoleKey();
+        this.spotifyConnected = user.getSpotifyConnected();
+
     }
 }
