@@ -29,14 +29,7 @@ public class SpotifyService {
     @Value("${spotify.client-secret}")
     private String clientSecret;
 
-    // 서버 주소
-    @Value("${server.address:localhost}")
-    private String serverAddress;
-
-    @Value("${server.port:8080}")
-    private String serverPort;
-    
-    @Value("${spotify.redirect.uri:}")
+    @Value("${spotify.redirect.uri}")
     private String spotifyRedirectUri;
 
     /**
@@ -74,10 +67,7 @@ public class SpotifyService {
      */
     private String exchangeCodeForToken(String code) {
         String tokenUrl = "https://accounts.spotify.com/api/token";
-        // application.properties에 설정된 redirect URI가 있으면 사용, 없으면 동적 생성
-        String redirectUri = (spotifyRedirectUri != null && !spotifyRedirectUri.isEmpty()) 
-                ? spotifyRedirectUri 
-                : "http://" + serverAddress + ":" + serverPort + "/api/spotify/callback";
+        String redirectUri = spotifyRedirectUri;
 
         RestTemplate restTemplate = new RestTemplate();
 
