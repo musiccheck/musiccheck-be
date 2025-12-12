@@ -86,3 +86,7 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+
+src/main/resources/application.properties
+src/main/resources/application-oauth.properties
+
