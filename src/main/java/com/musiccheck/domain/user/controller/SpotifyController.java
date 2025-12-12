@@ -1,4 +1,4 @@
-package com.musiccheck.domain.user.service;
+package com.musiccheck.domain.user.controller;
 
 import com.musiccheck.domain.user.service.SpotifyService;
 import lombok.RequiredArgsConstructor;
@@ -21,18 +21,19 @@ public class SpotifyController {
 
     private final SpotifyService spotifyService;
 
-    @Value("${spring.security.oauth2.client.registration.spotify.client-id}")
+    // ⭐ Spring Security OAuth 경로 X — 우리가 만든 경로로 수정
+    @Value("${spotify.client-id}")
     private String clientId;
 
-    @Value("${server.address}")
+    // ⭐ 기본값 지정 (없을 때 NullPointer 방지)
+    @Value("${server.address:localhost}")
     private String serverAddress;
 
-    @Value("${server.port}")
+    @Value("${server.port:8080}")
     private String serverPort;
 
     /**
      * 스포티파이 연동 시작 엔드포인트
-     * 이 엔드포인트를 호출하면 스포티파이 OAuth 인증 페이지로 리다이렉트됩니다.
      */
     @GetMapping("/api/spotify/connect")
     public ResponseEntity<Map<String, String>> connectSpotify(Authentication authentication) {
@@ -41,10 +42,10 @@ public class SpotifyController {
         }
 
         try {
-            // 스포티파이 OAuth 인증 URL 생성
             String redirectUri = "http://" + serverAddress + ":" + serverPort + "/api/spotify/callback";
+
             String scope = "user-read-private user-read-email playlist-modify-public playlist-modify-private";
-            String state = URLEncoder.encode(authentication.getName(), StandardCharsets.UTF_8.toString()); // 사용자 이메일을 state로 사용하여 콜백에서 식별
+            String state = URLEncoder.encode(authentication.getName(), StandardCharsets.UTF_8.toString());
 
             String authUrl = "https://accounts.spotify.com/authorize" +
                     "?client_id=" + clientId +
@@ -58,6 +59,7 @@ public class SpotifyController {
             response.put("message", "스포티파이 연동을 시작합니다.");
 
             return ResponseEntity.ok(response);
+
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("URL 인코딩 오류", e);
         }
@@ -65,7 +67,6 @@ public class SpotifyController {
 
     /**
      * 스포티파이 OAuth 콜백 엔드포인트
-     * 스포티파이에서 인증 후 리다이렉트되는 엔드포인트입니다.
      */
     @GetMapping("/api/spotify/callback")
     public ResponseEntity<Map<String, Object>> spotifyCallback(

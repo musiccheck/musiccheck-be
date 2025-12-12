@@ -30,38 +30,35 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
-                // 1. 세션 비활성화 (토큰 기반 인증)
+                // JWT 기반이므로 세션 비활성화
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 2. CORS 설정 (Lambda DSL 방식)
-                .cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfigurationSource()))
+                // CORS 설정
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // 3. CSRF, HTTP Basic, Form Login 비활성화 (Lambda DSL 방식)
+                // 사용하지 않는 보안 기능 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
 
-                // 4. JWT 필터 추가
+                // JWT 필터 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
-                // 5. 요청 권한 설정
+                // 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/oauth2/**", "/login/**", "/").permitAll()  // OAuth 관련만 허용
-                        .requestMatchers("/api/spotify/callback").permitAll()  // 스포티파이 콜백은 인증 불필요 (state로 사용자 식별)
-                        .requestMatchers("/api/user/me", "/api/likes", "/api/likes/**", "/api/search/books/*/select", "/api/books/*/playlist", "/api/spotify/connect").authenticated() // 인증 필요한 API
-
-                        // .requestMatchers("/api/user/me", "/api/likes", "/api/likes/disliked", "/api/likes/**", "/api/search/books/*/select", "/api/books/*/playlist").authenticated() // 인증 필요한 API
-                        .requestMatchers("/private/**").authenticated()
+                        .requestMatchers("/oauth2/**", "/login/**", "/").permitAll() // 카카오/구글/네이버 OAuth
+                        .requestMatchers("/api/spotify/callback").permitAll()       // Spotify 콜백은 인증 안함
+                        .requestMatchers("/api/spotify/connect").authenticated()     // Spotify 연결은 로그인 후만 가능
+                        .requestMatchers("/api/user/me", "/api/likes/**").authenticated()
                         .anyRequest().permitAll()
                 )
 
-                // 6. OAuth2 로그인 설정
+                // OAuth2 로그인 설정 (카카오/네이버/구글)
                 .oauth2Login(oauth2 -> oauth2
-                        .successHandler(oAuth2SuccessHandler) // 로그인 성공 시 핸들러 연결 (토큰 반환)
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService) // 사용자 정보 처리 서비스 연결
-                        )
+                        .successHandler(oAuth2SuccessHandler)
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                 );
 
         return http.build();
@@ -69,18 +66,14 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-
-        // 모든 origin 허용 (프론트엔드 연결을 위해)
-        configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(Arrays.asList("*"));
-        configuration.setMaxAge(3600L);
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(Collections.singletonList("*"));
+        config.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
+        config.setAllowedHeaders(Collections.singletonList("*"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }
