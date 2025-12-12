@@ -53,5 +53,9 @@ public class UserFeedback {
         this.musicId = musicId;
         this.feedback = feedback;
     }
+
+    public void updateFeedback(String feedback) {
+        this.feedback = feedback;
+    }
 }
 

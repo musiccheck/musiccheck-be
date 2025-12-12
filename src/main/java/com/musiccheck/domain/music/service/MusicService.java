@@ -1,9 +1,12 @@
 package com.musiccheck.domain.music.service;
 
 import com.musiccheck.domain.music.dto.MusicDto;
+import com.musiccheck.domain.music.entity.UserFeedback;
 import com.musiccheck.domain.music.repository.MusicRepository;
+import com.musiccheck.domain.music.repository.UserFeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
@@ -14,6 +17,7 @@ import java.util.stream.Collectors;
 public class MusicService {
 
     private final MusicRepository musicRepository;
+    private final UserFeedbackRepository userFeedbackRepository;
 
     public List<MusicDto> recommend(String isbn, Long userId) {
 
@@ -39,5 +43,24 @@ public class MusicService {
         // playlistLogService.save(userId, isbn, musicList);
 
         return musicList;
+    }
+
+    // 좋아요/싫어요 저장 또는 업데이트
+    @Transactional
+    public void saveFeedback(Long userId, String bookId, String musicId, String feedback) {
+        // 기존 피드백이 있는지 확인
+        userFeedbackRepository.findByUserIdAndBookIdAndMusicId(userId, bookId, musicId)
+                .ifPresentOrElse(
+                        existingFeedback -> {
+                            // 기존 피드백이 있으면 feedback만 업데이트
+                            existingFeedback.updateFeedback(feedback);
+                            userFeedbackRepository.save(existingFeedback);
+                        },
+                        () -> {
+                            // 기존 피드백이 없으면 새로 생성
+                            UserFeedback newFeedback = new UserFeedback(userId, bookId, musicId, feedback);
+                            userFeedbackRepository.save(newFeedback);
+                        }
+                );
     }
 }
