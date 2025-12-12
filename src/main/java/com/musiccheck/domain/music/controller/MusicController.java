@@ -68,6 +68,11 @@ public class MusicController {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "피드백이 저장되었습니다.");
+        
+        // 싫어요인 경우 제외된 곡 정보 반환 (프론트에서 즉시 제거하기 위해)
+        if (feedback.equals("dislike")) {
+            response.put("removedTrackId", musicId);
+        }
 
         return ResponseEntity.ok(response);
     }
