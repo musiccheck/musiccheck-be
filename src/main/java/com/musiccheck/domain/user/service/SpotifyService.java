@@ -35,6 +35,9 @@ public class SpotifyService {
 
     @Value("${server.port:8080}")
     private String serverPort;
+    
+    @Value("${spotify.redirect.uri:}")
+    private String spotifyRedirectUri;
 
     /**
      * 스포티파이 인증 코드를 액세스 토큰으로 교환
@@ -71,7 +74,10 @@ public class SpotifyService {
      */
     private String exchangeCodeForToken(String code) {
         String tokenUrl = "https://accounts.spotify.com/api/token";
-        String redirectUri = "http://" + serverAddress + ":" + serverPort + "/api/spotify/callback";
+        // application.properties에 설정된 redirect URI가 있으면 사용, 없으면 동적 생성
+        String redirectUri = (spotifyRedirectUri != null && !spotifyRedirectUri.isEmpty()) 
+                ? spotifyRedirectUri 
+                : "http://" + serverAddress + ":" + serverPort + "/api/spotify/callback";
 
         RestTemplate restTemplate = new RestTemplate();
 

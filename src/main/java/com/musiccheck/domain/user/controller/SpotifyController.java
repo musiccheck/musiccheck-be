@@ -31,6 +31,9 @@ public class SpotifyController {
 
     @Value("${server.port:8080}")
     private String serverPort;
+    
+    @Value("${spotify.redirect.uri:}")
+    private String spotifyRedirectUri;
 
     /**
      * 스포티파이 연동 시작 엔드포인트
@@ -42,7 +45,10 @@ public class SpotifyController {
         }
 
         try {
-            String redirectUri = "http://" + serverAddress + ":" + serverPort + "/api/spotify/callback";
+            // application.properties에 설정된 redirect URI가 있으면 사용, 없으면 동적 생성
+            String redirectUri = (spotifyRedirectUri != null && !spotifyRedirectUri.isEmpty()) 
+                    ? spotifyRedirectUri 
+                    : "http://" + serverAddress + ":" + serverPort + "/api/spotify/callback";
 
             String scope = "user-read-private user-read-email playlist-modify-public playlist-modify-private";
             String state = URLEncoder.encode(authentication.getName(), StandardCharsets.UTF_8.toString());
