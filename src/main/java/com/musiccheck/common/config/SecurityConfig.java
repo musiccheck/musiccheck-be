@@ -48,10 +48,17 @@ public class SecurityConfig {
 
                 // 권한 설정
                 .authorizeHttpRequests(auth -> auth
+<<<<<<< HEAD
                         .requestMatchers("/oauth2/**", "/login/**", "/").permitAll() // 카카오/구글/네이버 OAuth
                         .requestMatchers("/api/spotify/callback").permitAll()       // Spotify 콜백은 인증 안함
                         .requestMatchers("/api/spotify/connect").authenticated()     // Spotify 연결은 로그인 후만 가능
                         .requestMatchers("/api/user/me", "/api/likes/**").authenticated()
+=======
+                        .requestMatchers("/oauth2/**", "/login/**", "/").permitAll()  // OAuth 관련만 허용
+                        .requestMatchers("/api/spotify/callback").permitAll()  // 스포티파이 콜백은 인증 불필요 (state로 사용자 식별)
+                        .requestMatchers("/api/user/me", "/api/user", "/api/likes", "/api/likes/disliked", "/api/likes/**", "/api/search/books/*/select", "/api/books/*/playlist", "/api/spotify/connect").authenticated() // 인증 필요한 API
+                        .requestMatchers("/private/**").authenticated()
+>>>>>>> 049777e96192a8bcd0d98c40670bdd35d4772940
                         .anyRequest().permitAll()
                 )
 
