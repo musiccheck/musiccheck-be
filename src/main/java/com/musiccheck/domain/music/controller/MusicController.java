@@ -1,5 +1,6 @@
 package com.musiccheck.domain.music.controller;
 
+import com.musiccheck.domain.music.dto.DislikedSongDto;
 import com.musiccheck.domain.music.dto.MusicDto;
 import com.musiccheck.domain.music.service.MusicService;
 import com.musiccheck.domain.user.entity.User;
@@ -67,6 +68,44 @@ public class MusicController {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "피드백이 저장되었습니다.");
+
+        return ResponseEntity.ok(response);
+    }
+
+    // 싫어요 목록 조회
+    @GetMapping("/api/likes/disliked")
+    public ResponseEntity<List<DislikedSongDto>> getDislikedSongs(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+
+        List<DislikedSongDto> dislikedSongs = musicService.getDislikedSongs(user.getId());
+        return ResponseEntity.ok(dislikedSongs);
+    }
+
+    // 싫어요 취소
+    @DeleteMapping("/api/likes/{feedbackId}")
+    public ResponseEntity<Map<String, Object>> deleteFeedback(
+            @PathVariable Long feedbackId,
+            Authentication authentication
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+
+        musicService.deleteFeedback(user.getId(), feedbackId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "싫어요가 취소되었습니다.");
 
         return ResponseEntity.ok(response);
     }

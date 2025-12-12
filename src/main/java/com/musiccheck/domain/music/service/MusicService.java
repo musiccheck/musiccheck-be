@@ -1,6 +1,10 @@
 package com.musiccheck.domain.music.service;
 
+import com.musiccheck.domain.book.entity.BookEntity;
+import com.musiccheck.domain.book.repository.BookRepository;
+import com.musiccheck.domain.music.dto.DislikedSongDto;
 import com.musiccheck.domain.music.dto.MusicDto;
+import com.musiccheck.domain.music.entity.MusicEntity;
 import com.musiccheck.domain.music.entity.UserFeedback;
 import com.musiccheck.domain.music.repository.MusicRepository;
 import com.musiccheck.domain.music.repository.UserFeedbackRepository;
@@ -18,6 +22,7 @@ public class MusicService {
 
     private final MusicRepository musicRepository;
     private final UserFeedbackRepository userFeedbackRepository;
+    private final BookRepository bookRepository;
 
     public List<MusicDto> recommend(String isbn, Long userId) {
 
@@ -62,5 +67,51 @@ public class MusicService {
                             userFeedbackRepository.save(newFeedback);
                         }
                 );
+    }
+
+    // 싫어요 목록 조회
+    public List<DislikedSongDto> getDislikedSongs(Long userId) {
+        // 1) 유저의 싫어요 피드백 목록 조회
+        List<UserFeedback> dislikedFeedbacks = userFeedbackRepository.findByUserIdAndFeedback(userId, "dislike");
+
+        // 2) 각 피드백에 대해 책과 음악 정보 조회하여 DTO로 변환
+        return dislikedFeedbacks.stream()
+                .map(feedback -> {
+                    BookEntity book = bookRepository.findById(feedback.getBookId())
+                            .orElse(null);
+                    MusicEntity music = musicRepository.findById(feedback.getMusicId())
+                            .orElse(null);
+
+                    if (book == null || music == null) {
+                        return null; // 책이나 음악이 없으면 제외
+                    }
+
+                    return new DislikedSongDto(
+                            feedback.getFeedbackId(),
+                            book.getIsbn(),
+                            book.getTitle(),
+                            book.getImage(),
+                            music.getTrackId(),
+                            music.getTrackName(),
+                            music.getArtistName(),
+                            music.getImageUrl()
+                    );
+                })
+                .filter(dto -> dto != null) // null 제외
+                .collect(Collectors.toList());
+    }
+
+    // 싫어요 취소 (피드백 삭제)
+    @Transactional
+    public void deleteFeedback(Long userId, Long feedbackId) {
+        UserFeedback feedback = userFeedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new IllegalArgumentException("피드백을 찾을 수 없습니다."));
+
+        // 본인의 피드백인지 확인
+        if (!feedback.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 피드백만 삭제할 수 있습니다.");
+        }
+
+        userFeedbackRepository.delete(feedback);
     }
 }
