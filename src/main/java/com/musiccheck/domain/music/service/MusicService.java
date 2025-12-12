@@ -77,20 +77,23 @@ public class MusicService {
         // 2) 각 피드백에 대해 책과 음악 정보 조회하여 DTO로 변환
         return dislikedFeedbacks.stream()
                 .map(feedback -> {
-                    BookEntity book = bookRepository.findById(feedback.getBookId())
+                    String isbn = feedback.getBookId(); // user_feedback.book_id는 실제로 isbn 값을 저장
+                    BookEntity book = bookRepository.findById(isbn)
                             .orElse(null);
                     MusicEntity music = musicRepository.findById(feedback.getMusicId())
                             .orElse(null);
 
-                    if (book == null || music == null) {
-                        return null; // 책이나 음악이 없으면 제외
+                    // 음악 정보가 없으면 제외 (책 정보는 없어도 isbn은 포함)
+                    if (music == null) {
+                        return null;
                     }
 
+                    // 책 정보가 없어도 isbn은 포함하여 반환
                     return new DislikedSongDto(
                             feedback.getFeedbackId(),
-                            book.getIsbn(),
-                            book.getTitle(),
-                            book.getImage(),
+                            isbn, // isbn은 항상 포함 (user_feedback.book_id 값)
+                            book != null ? book.getTitle() : null,
+                            book != null ? book.getImage() : null,
                             music.getTrackId(),
                             music.getTrackName(),
                             music.getArtistName(),
