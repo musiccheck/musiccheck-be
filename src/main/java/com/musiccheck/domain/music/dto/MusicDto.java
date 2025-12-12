@@ -5,5 +5,6 @@ public record MusicDto(
         String trackName,
         String artistName,
         String imageUrl,
-        String externalUrl
+        String externalUrl,
+        Long likeCount
 ) {}

@@ -48,7 +48,7 @@ public class SecurityConfig {
                 // 5. 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/oauth2/**", "/login/**", "/").permitAll()  // OAuth 관련만 허용
-                        .requestMatchers("/api/user/me", "/api/likes/**", "/api/search/books/*/select").authenticated() // 인증 필요한 API
+                        .requestMatchers("/api/user/me", "/api/likes/**", "/api/search/books/**/select").authenticated() // 인증 필요한 API
                         .requestMatchers("/private/**").authenticated()
                         .anyRequest().permitAll()
                 )
