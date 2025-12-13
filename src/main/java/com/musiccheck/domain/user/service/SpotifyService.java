@@ -68,6 +68,11 @@ public class SpotifyService {
     private String exchangeCodeForToken(String code) {
         String tokenUrl = "https://accounts.spotify.com/api/token";
         String redirectUri = spotifyRedirectUri;
+        
+        // 디버깅: 토큰 교환 시 사용하는 redirect URI 로그 출력
+        System.out.println("=== Spotify Token Exchange 디버깅 ===");
+        System.out.println("사용하는 redirect_uri: " + redirectUri);
+        System.out.println("===================================");
 
         RestTemplate restTemplate = new RestTemplate();
 

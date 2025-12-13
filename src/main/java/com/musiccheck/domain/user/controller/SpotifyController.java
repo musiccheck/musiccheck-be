@@ -39,16 +39,26 @@ public class SpotifyController {
 
         try {
             String redirectUri = spotifyRedirectUri;
+            
+            // 디버깅: 실제 사용하는 redirect URI 로그 출력
+            System.out.println("=== Spotify Redirect URI 디버깅 ===");
+            System.out.println("설정 파일에서 읽은 URI: " + spotifyRedirectUri);
+            System.out.println("인코딩 전 URI: " + redirectUri);
+            System.out.println("인코딩 후 URI: " + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8.toString()));
 
             String scope = "user-read-private user-read-email playlist-modify-public playlist-modify-private";
             String state = URLEncoder.encode(authentication.getName(), StandardCharsets.UTF_8.toString());
 
+            String encodedRedirectUri = URLEncoder.encode(redirectUri, StandardCharsets.UTF_8.toString());
             String authUrl = "https://accounts.spotify.com/authorize" +
                     "?client_id=" + clientId +
                     "&response_type=code" +
-                    "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8.toString()) +
+                    "&redirect_uri=" + encodedRedirectUri +
                     "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8.toString()) +
                     "&state=" + state;
+            
+            System.out.println("최종 authUrl: " + authUrl);
+            System.out.println("===================================");
 
             Map<String, String> response = new HashMap<>();
             response.put("authUrl", authUrl);
