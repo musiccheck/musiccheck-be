@@ -157,11 +157,58 @@ public class SpotifyController {
                 <div class="container">
                     <h2>✅ 완료!</h2>
                     <p>스포티파이 연동이 완료되었습니다.</p>
-                    <a href="%s" class="btn">앱으로 돌아가기</a>
+                    <a href="%s" class="btn" id="openAppBtn" onclick="tryOpenApp(event)">앱으로 돌아가기</a>
                 </div>
+                <script>
+                    const deepLinkUrl = '%s';
+                    
+                    function tryOpenApp(e) {
+                        e.preventDefault();
+                        
+                        // 방법 1: location.href (일반적인 방법)
+                        try {
+                            window.location.href = deepLinkUrl;
+                        } catch (err) {
+                            console.error('방법 1 실패:', err);
+                        }
+                        
+                        // 방법 2: iframe 사용 (iOS Safari 호환)
+                        setTimeout(() => {
+                            try {
+                                const iframe = document.createElement('iframe');
+                                iframe.style.display = 'none';
+                                iframe.src = deepLinkUrl;
+                                document.body.appendChild(iframe);
+                                setTimeout(() => {
+                                    if (iframe.parentNode) {
+                                        document.body.removeChild(iframe);
+                                    }
+                                }, 2000);
+                            } catch (err) {
+                                console.error('방법 2 실패:', err);
+                            }
+                        }, 100);
+                        
+                        // 방법 3: window.open (일부 브라우저)
+                        setTimeout(() => {
+                            try {
+                                window.open(deepLinkUrl, '_blank');
+                            } catch (err) {
+                                console.error('방법 3 실패:', err);
+                            }
+                        }, 200);
+                        
+                        // 버튼 텍스트 변경
+                        const btn = document.getElementById('openAppBtn');
+                        if (btn) {
+                            btn.textContent = '앱을 여는 중...';
+                            btn.style.opacity = '0.7';
+                        }
+                    }
+                </script>
             </body>
             </html>
-            """, deepLinkUrl);
+            """, deepLinkUrl, deepLinkUrl);
     }
 
     private String generateErrorHtml(String message) {
@@ -214,10 +261,57 @@ public class SpotifyController {
                 <div class="container">
                     <h2>❌ Spotify 연동 실패</h2>
                     <p>%s</p>
-                    <a href="%s" class="btn">앱으로 돌아가기</a>
+                    <a href="%s" class="btn" id="openAppBtn" onclick="tryOpenApp(event)">앱으로 돌아가기</a>
                 </div>
+                <script>
+                    const deepLinkUrl = '%s';
+                    
+                    function tryOpenApp(e) {
+                        e.preventDefault();
+                        
+                        // 방법 1: location.href
+                        try {
+                            window.location.href = deepLinkUrl;
+                        } catch (err) {
+                            console.error('방법 1 실패:', err);
+                        }
+                        
+                        // 방법 2: iframe 사용 (iOS Safari 호환)
+                        setTimeout(() => {
+                            try {
+                                const iframe = document.createElement('iframe');
+                                iframe.style.display = 'none';
+                                iframe.src = deepLinkUrl;
+                                document.body.appendChild(iframe);
+                                setTimeout(() => {
+                                    if (iframe.parentNode) {
+                                        document.body.removeChild(iframe);
+                                    }
+                                }, 2000);
+                            } catch (err) {
+                                console.error('방법 2 실패:', err);
+                            }
+                        }, 100);
+                        
+                        // 방법 3: window.open
+                        setTimeout(() => {
+                            try {
+                                window.open(deepLinkUrl, '_blank');
+                            } catch (err) {
+                                console.error('방법 3 실패:', err);
+                            }
+                        }, 200);
+                        
+                        // 버튼 텍스트 변경
+                        const btn = document.getElementById('openAppBtn');
+                        if (btn) {
+                            btn.textContent = '앱을 여는 중...';
+                            btn.style.opacity = '0.7';
+                        }
+                    }
+                </script>
             </body>
             </html>
-            """, message, deepLinkUrl);
+            """, message, deepLinkUrl, deepLinkUrl);
     }
 }
