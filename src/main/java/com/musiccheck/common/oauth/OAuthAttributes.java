@@ -37,9 +37,11 @@ public class OAuthAttributes {
 
     //구글
     private static OAuthAttributes ofGoogle(String userNameAttributeName, Map<String, Object> attributes) {
+        String name = (String) attributes.get("name");
+        String email = (String) attributes.get("email");
         return OAuthAttributes.builder()
-                .name((String) attributes.get("name"))
-                .email((String) attributes.get("email"))
+                .name(name != null ? name : (email != null ? email.split("@")[0] : "사용자"))
+                .email(email)
                 .profile((String) attributes.get("profile"))
                 .attributes(attributes)
                 .nameAttributeKey(userNameAttributeName)
@@ -49,10 +51,12 @@ public class OAuthAttributes {
     //네이버
     private static OAuthAttributes ofNaver(String userNameAttributeName, Map<String, Object> attributes) {
         Map<String, Object> response = (Map<String, Object>) attributes.get("response");
+        String name = (String) response.get("name");
+        String email = (String) response.get("email");
 
         return OAuthAttributes.builder()
-                .name((String) response.get("name"))
-                .email((String) response.get("email"))
+                .name(name != null ? name : (email != null ? email.split("@")[0] : "사용자"))
+                .email(email)
                 .profile((String) response.get("profile_image"))
                 .attributes(response)
                 .nameAttributeKey(userNameAttributeName)
@@ -63,11 +67,13 @@ public class OAuthAttributes {
     private static OAuthAttributes ofKakao(String userNameAttributeName, Map<String, Object> attributes) {
         Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
         Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+        String name = profile != null ? (String) profile.get("nickname") : null;
+        String email = (String) kakaoAccount.get("email");
 
         return OAuthAttributes.builder()
-                .name((String) profile.get("nickname"))
-                .email((String) kakaoAccount.get("email"))
-                .profile((String) profile.get("profile_image_url"))
+                .name(name != null ? name : (email != null ? email.split("@")[0] : "사용자"))
+                .email(email)
+                .profile(profile != null ? (String) profile.get("profile_image_url") : null)
                 .attributes(attributes)
                 .nameAttributeKey(userNameAttributeName)
                 .build();
@@ -75,7 +81,9 @@ public class OAuthAttributes {
 
     public User toEntity() {
         User user = new User(email);
-        user.setOAuthAttributes(name, profile, Role.GUEST);
+        // name이 null이면 email의 @ 앞부분을 사용, 그것도 없으면 "사용자"
+        String finalName = name != null ? name : (email != null ? email.split("@")[0] : "사용자");
+        user.setOAuthAttributes(finalName, profile, Role.GUEST);
         return user;
     }
 }

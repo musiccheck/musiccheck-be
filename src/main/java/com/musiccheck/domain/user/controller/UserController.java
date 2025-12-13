@@ -28,7 +28,8 @@ public class UserController {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "사용자를 찾을 수 없습니다. OAuth 로그인을 다시 진행해주세요. (Email: " + email + ")"));
 
         return new UserDto(user);
     }
