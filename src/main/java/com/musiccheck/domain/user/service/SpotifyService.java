@@ -11,6 +11,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
@@ -38,14 +39,33 @@ public class SpotifyService {
     @Transactional
     public Map<String, Object> handleCallback(String code, String state) {
         try {
+            // state 디코딩 (URL 인코딩된 이메일)
+            String decodedEmail = URLDecoder.decode(state, StandardCharsets.UTF_8.toString());
+            
+            System.out.println("=== Spotify Callback 디버깅 ===");
+            System.out.println("원본 state: " + state);
+            System.out.println("디코딩된 이메일: " + decodedEmail);
+            
             String accessToken = exchangeCodeForToken(code);
             Map<String, Object> userInfo = getUserInfo(accessToken);
 
-            User user = userRepository.findByEmail(state)
-                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            System.out.println("사용자 찾기 시도: " + decodedEmail);
+            User user = userRepository.findByEmail(decodedEmail)
+                    .orElseThrow(() -> {
+                        System.err.println("❌ 사용자를 찾을 수 없습니다. 이메일: " + decodedEmail);
+                        return new IllegalArgumentException("사용자를 찾을 수 없습니다. 이메일: " + decodedEmail);
+                    });
 
+            System.out.println("✅ 사용자 찾음: " + user.getEmail());
+            System.out.println("현재 spotify_connected 값: " + user.getSpotifyConnected());
+            
             user.setSpotifyConnected(true);
             userRepository.save(user);
+            
+            // 저장 후 확인
+            User savedUser = userRepository.findByEmail(decodedEmail).orElse(null);
+            System.out.println("저장 후 spotify_connected 값: " + (savedUser != null ? savedUser.getSpotifyConnected() : "null"));
+            System.out.println("===================================");
 
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
@@ -55,6 +75,11 @@ public class SpotifyService {
             return result;
 
         } catch (Exception e) {
+            System.err.println("❌ Spotify Callback 오류 발생:");
+            System.err.println("   오류 타입: " + e.getClass().getName());
+            System.err.println("   오류 메시지: " + e.getMessage());
+            e.printStackTrace();
+            
             Map<String, Object> result = new HashMap<>();
             result.put("success", false);
             result.put("message", "스포티파이 연동 중 오류 발생: " + e.getMessage());

@@ -105,12 +105,8 @@ public class SpotifyController {
 
     private String generateSuccessHtml(Map<String, Object> result) {
         String spotifyUserId = result.get("spotifyUserId") != null ? result.get("spotifyUserId").toString() : "";
-        String encodedSpotifyUserId = URLEncoder.encode(spotifyUserId, StandardCharsets.UTF_8);
         
-        // Deep Link URL 생성 (Expo: musiccheck:// 또는 exp://)
-        String deepLinkUrl = String.format("musiccheck://spotify-callback?success=true&spotifyUserId=%s", encodedSpotifyUserId);
-        
-        // 간단한 HTML 페이지 반환
+        // WebView용 HTML 페이지 반환
         return String.format("""
             <!DOCTYPE html>
             <html>
@@ -150,6 +146,9 @@ public class SpotifyController {
                         text-decoration: none;
                         border-radius: 25px;
                         font-weight: 600;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 16px;
                     }
                 </style>
             </head>
@@ -157,64 +156,25 @@ public class SpotifyController {
                 <div class="container">
                     <h2>✅ 완료!</h2>
                     <p>스포티파이 연동이 완료되었습니다.</p>
-                    <a href="%s" class="btn" id="openAppBtn" onclick="tryOpenApp(event)">앱으로 돌아가기</a>
+                    <p style="font-size: 14px; color: #999; margin-top: 20px;">앱으로 돌아가주세요!.</p>
                 </div>
                 <script>
-                    const deepLinkUrl = '%s';
-                    
-                    function tryOpenApp(e) {
-                        e.preventDefault();
-                        
-                        // 방법 1: location.href (일반적인 방법)
-                        try {
-                            window.location.href = deepLinkUrl;
-                        } catch (err) {
-                            console.error('방법 1 실패:', err);
-                        }
-                        
-                        // 방법 2: iframe 사용 (iOS Safari 호환)
-                        setTimeout(() => {
-                            try {
-                                const iframe = document.createElement('iframe');
-                                iframe.style.display = 'none';
-                                iframe.src = deepLinkUrl;
-                                document.body.appendChild(iframe);
-                                setTimeout(() => {
-                                    if (iframe.parentNode) {
-                                        document.body.removeChild(iframe);
-                                    }
-                                }, 2000);
-                            } catch (err) {
-                                console.error('방법 2 실패:', err);
-                            }
-                        }, 100);
-                        
-                        // 방법 3: window.open (일부 브라우저)
-                        setTimeout(() => {
-                            try {
-                                window.open(deepLinkUrl, '_blank');
-                            } catch (err) {
-                                console.error('방법 3 실패:', err);
-                            }
-                        }, 200);
-                        
-                        // 버튼 텍스트 변경
-                        const btn = document.getElementById('openAppBtn');
-                        if (btn) {
-                            btn.textContent = '앱을 여는 중...';
-                            btn.style.opacity = '0.7';
-                        }
+                    // WebView에서 실행 중인지 확인
+                    if (window.ReactNativeWebView) {
+                        // WebView에 성공 메시지 전송
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: 'spotifyCallback',
+                            success: true,
+                            spotifyUserId: '%s'
+                        }));
                     }
                 </script>
             </body>
             </html>
-            """, deepLinkUrl, deepLinkUrl);
+            """, spotifyUserId);
     }
 
     private String generateErrorHtml(String message) {
-        String encodedMessage = URLEncoder.encode(message, StandardCharsets.UTF_8);
-        String deepLinkUrl = String.format("musiccheck://spotify-callback?success=false&message=%s", encodedMessage);
-        
         return String.format("""
             <!DOCTYPE html>
             <html>
@@ -261,57 +221,21 @@ public class SpotifyController {
                 <div class="container">
                     <h2>❌ Spotify 연동 실패</h2>
                     <p>%s</p>
-                    <a href="%s" class="btn" id="openAppBtn" onclick="tryOpenApp(event)">앱으로 돌아가기</a>
+                    <p style="font-size: 14px; color: #999; margin-top: 20px;">앱으로 돌아가주세요!.</p>
                 </div>
                 <script>
-                    const deepLinkUrl = '%s';
-                    
-                    function tryOpenApp(e) {
-                        e.preventDefault();
-                        
-                        // 방법 1: location.href
-                        try {
-                            window.location.href = deepLinkUrl;
-                        } catch (err) {
-                            console.error('방법 1 실패:', err);
-                        }
-                        
-                        // 방법 2: iframe 사용 (iOS Safari 호환)
-                        setTimeout(() => {
-                            try {
-                                const iframe = document.createElement('iframe');
-                                iframe.style.display = 'none';
-                                iframe.src = deepLinkUrl;
-                                document.body.appendChild(iframe);
-                                setTimeout(() => {
-                                    if (iframe.parentNode) {
-                                        document.body.removeChild(iframe);
-                                    }
-                                }, 2000);
-                            } catch (err) {
-                                console.error('방법 2 실패:', err);
-                            }
-                        }, 100);
-                        
-                        // 방법 3: window.open
-                        setTimeout(() => {
-                            try {
-                                window.open(deepLinkUrl, '_blank');
-                            } catch (err) {
-                                console.error('방법 3 실패:', err);
-                            }
-                        }, 200);
-                        
-                        // 버튼 텍스트 변경
-                        const btn = document.getElementById('openAppBtn');
-                        if (btn) {
-                            btn.textContent = '앱을 여는 중...';
-                            btn.style.opacity = '0.7';
-                        }
+                    // WebView에서 실행 중인지 확인
+                    if (window.ReactNativeWebView) {
+                        // WebView에 실패 메시지 전송
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: 'spotifyCallback',
+                            success: false,
+                            message: '%s'
+                        }));
                     }
                 </script>
             </body>
             </html>
-            """, message, deepLinkUrl, deepLinkUrl);
+            """, message, message);
     }
 }
