@@ -75,26 +75,149 @@ public class SpotifyController {
      * 스포티파이 OAuth 콜백 엔드포인트
      */
     @GetMapping("/api/spotify/callback")
-    public ResponseEntity<Map<String, Object>> spotifyCallback(
+    public ResponseEntity<String> spotifyCallback(
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String error) {
 
         if (error != null) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", "스포티파이 연동이 취소되었습니다.");
-            return ResponseEntity.badRequest().body(errorResponse);
+            String errorHtml = generateErrorHtml("스포티파이 연동이 취소되었습니다.");
+            return ResponseEntity.badRequest()
+                    .header("Content-Type", "text/html; charset=UTF-8")
+                    .body(errorHtml);
         }
 
         if (code == null || state == null) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", "필수 파라미터가 누락되었습니다.");
-            return ResponseEntity.badRequest().body(errorResponse);
+            String errorHtml = generateErrorHtml("필수 파라미터가 누락되었습니다.");
+            return ResponseEntity.badRequest()
+                    .header("Content-Type", "text/html; charset=UTF-8")
+                    .body(errorHtml);
         }
 
         Map<String, Object> result = spotifyService.handleCallback(code, state);
-        return ResponseEntity.ok(result);
+        
+        // 성공 시 HTML 페이지 반환하여 앱으로 리다이렉트
+        String successHtml = generateSuccessHtml(result);
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/html; charset=UTF-8")
+                .body(successHtml);
+    }
+
+    private String generateSuccessHtml(Map<String, Object> result) {
+        String spotifyUserId = result.get("spotifyUserId") != null ? result.get("spotifyUserId").toString() : "";
+        String encodedSpotifyUserId = URLEncoder.encode(spotifyUserId, StandardCharsets.UTF_8);
+        
+        // Deep Link URL 생성 (Expo: musiccheck:// 또는 exp://)
+        String deepLinkUrl = String.format("musiccheck://spotify-callback?success=true&spotifyUserId=%s", encodedSpotifyUserId);
+        
+        // 간단한 HTML 페이지 반환
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Spotify 연동 완료</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+                    }
+                    .container {
+                        text-align: center;
+                        padding: 40px;
+                        background: white;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                        max-width: 400px;
+                    }
+                    h2 {
+                        color: #1DB954;
+                        margin-bottom: 20px;
+                    }
+                    .btn {
+                        display: inline-block;
+                        margin-top: 20px;
+                        padding: 12px 30px;
+                        background-color: #1DB954;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 25px;
+                        font-weight: 600;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2>✅ 완료!</h2>
+                    <p>스포티파이 연동이 완료되었습니다.</p>
+                    <a href="%s" class="btn">앱으로 돌아가기</a>
+                </div>
+            </body>
+            </html>
+            """, deepLinkUrl);
+    }
+
+    private String generateErrorHtml(String message) {
+        String encodedMessage = URLEncoder.encode(message, StandardCharsets.UTF_8);
+        String deepLinkUrl = String.format("musiccheck://spotify-callback?success=false&message=%s", encodedMessage);
+        
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Spotify 연동 실패</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        background: linear-gradient(135deg, #f093fb 0%%, #f5576c 100%%);
+                    }
+                    .container {
+                        text-align: center;
+                        padding: 40px;
+                        background: white;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                        max-width: 400px;
+                    }
+                    h2 {
+                        color: #e74c3c;
+                        margin-bottom: 20px;
+                    }
+                    .btn {
+                        display: inline-block;
+                        margin-top: 20px;
+                        padding: 12px 30px;
+                        background-color: #e74c3c;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 25px;
+                        font-weight: 600;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2>❌ Spotify 연동 실패</h2>
+                    <p>%s</p>
+                    <a href="%s" class="btn">앱으로 돌아가기</a>
+                </div>
+            </body>
+            </html>
+            """, message, deepLinkUrl);
     }
 }
