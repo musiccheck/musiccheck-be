@@ -37,6 +37,16 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         System.out.println("===================================");
         
         if (requestURI != null && (requestURI.contains("/oauth2/code/google") || requestURI.contains("/code/google"))) {
+            // JWT 토큰을 쿠키에 설정 (프론트엔드에서 사용할 수 있도록)
+            jakarta.servlet.http.Cookie tokenCookie = new jakarta.servlet.http.Cookie("jwt_token", token);
+            tokenCookie.setHttpOnly(true);
+            tokenCookie.setSecure(true); // HTTPS에서만 전송
+            tokenCookie.setPath("/");
+            tokenCookie.setMaxAge(60 * 60 * 24 * 7); // 7일
+            response.addCookie(tokenCookie);
+            
+            System.out.println("✅ [Google] JWT 토큰 쿠키 설정 완료");
+            
             // HTML 응답 반환
             response.setContentType("text/html;charset=UTF-8");
             response.setStatus(HttpServletResponse.SC_OK);
