@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -52,5 +53,32 @@ public class BookController {
         response.put("message", "히스토리가 저장되었습니다.");
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 최근 읽은 책 목록 조회
+     * @param limit 조회할 개수 (기본값: 6, 3x2 그리드)
+     * @return 최근 읽은 책 목록
+     */
+    @GetMapping("/recent")
+    public ResponseEntity<List<BookDto>> getRecentBooks(
+            @RequestParam(defaultValue = "6") int limit,  // 기본값: 6개 (3x2)
+            Authentication authentication
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+
+        // limit은 6 또는 9만 허용 (3x2 또는 3x3)
+        if (limit != 6 && limit != 9) {
+            limit = 6; // 기본값으로 설정
+        }
+
+        List<BookDto> recentBooks = bookService.getRecentBooks(user.getId(), limit);
+        return ResponseEntity.ok(recentBooks);
     }
 }
