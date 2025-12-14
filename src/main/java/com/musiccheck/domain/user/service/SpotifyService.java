@@ -51,6 +51,16 @@ public class SpotifyService {
             String accessToken = tokens.get("access_token");
             String refreshToken = tokens.get("refresh_token");
             
+            System.out.println("=== 토큰 저장 전 확인 ===");
+            System.out.println("accessToken null 여부: " + (accessToken == null));
+            System.out.println("accessToken 길이: " + (accessToken != null ? accessToken.length() : 0));
+            System.out.println("refreshToken null 여부: " + (refreshToken == null));
+            System.out.println("refreshToken 길이: " + (refreshToken != null && !refreshToken.isEmpty() ? refreshToken.length() : 0));
+            
+            if (accessToken == null || accessToken.isEmpty()) {
+                throw new RuntimeException("액세스 토큰이 없습니다.");
+            }
+            
             Map<String, Object> userInfo = getUserInfo(accessToken);
 
             System.out.println("사용자 찾기 시도: " + decodedEmail);
@@ -66,12 +76,24 @@ public class SpotifyService {
             // 토큰 저장
             user.setSpotifyConnected(true);
             user.setSpotifyAccessToken(accessToken);
-            user.setSpotifyRefreshToken(refreshToken);
+            if (refreshToken != null && !refreshToken.isEmpty()) {
+                user.setSpotifyRefreshToken(refreshToken);
+            } else {
+                System.out.println("⚠️ refresh_token이 없습니다. 기존 refresh_token 유지");
+            }
+            
+            System.out.println("저장 전 토큰 확인:");
+            System.out.println("  accessToken: " + (user.getSpotifyAccessToken() != null ? "설정됨" : "NULL"));
+            System.out.println("  refreshToken: " + (user.getSpotifyRefreshToken() != null ? "설정됨" : "NULL"));
+            
             userRepository.save(user);
             
             // 저장 후 확인
             User savedUser = userRepository.findByEmail(decodedEmail).orElse(null);
-            System.out.println("저장 후 spotify_connected 값: " + (savedUser != null ? savedUser.getSpotifyConnected() : "null"));
+            System.out.println("저장 후 확인:");
+            System.out.println("  spotify_connected: " + (savedUser != null ? savedUser.getSpotifyConnected() : "null"));
+            System.out.println("  spotify_access_token: " + (savedUser != null && savedUser.getSpotifyAccessToken() != null ? "존재함 (길이: " + savedUser.getSpotifyAccessToken().length() + ")" : "NULL"));
+            System.out.println("  spotify_refresh_token: " + (savedUser != null && savedUser.getSpotifyRefreshToken() != null ? "존재함 (길이: " + savedUser.getSpotifyRefreshToken().length() + ")" : "NULL"));
             System.out.println("===================================");
 
             Map<String, Object> result = new HashMap<>();
@@ -124,15 +146,32 @@ public class SpotifyService {
 
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
             Map<String, Object> tokenResponse = response.getBody();
+            
+            System.out.println("=== Spotify Token Response 디버깅 ===");
+            System.out.println("응답 키 목록: " + tokenResponse.keySet());
+            System.out.println("전체 응답: " + tokenResponse);
+            
             String accessToken = (String) tokenResponse.get("access_token");
             String refreshToken = (String) tokenResponse.get("refresh_token");
             
+            System.out.println("access_token: " + (accessToken != null ? "존재함 (길이: " + accessToken.length() + ")" : "NULL"));
+            System.out.println("refresh_token: " + (refreshToken != null ? "존재함 (길이: " + refreshToken.length() + ")" : "NULL"));
+            
+            if (accessToken == null || accessToken.isEmpty()) {
+                System.err.println("❌ access_token이 null이거나 비어있습니다!");
+                throw new RuntimeException("액세스 토큰을 받지 못했습니다.");
+            }
+            
             Map<String, String> tokens = new HashMap<>();
             tokens.put("access_token", accessToken);
-            tokens.put("refresh_token", refreshToken);
+            tokens.put("refresh_token", refreshToken != null ? refreshToken : ""); // refresh_token은 null일 수 있음
+            System.out.println("===================================");
             return tokens;
         }
-        throw new RuntimeException("토큰 교환 실패");
+        
+        System.err.println("❌ 토큰 교환 실패 - 상태 코드: " + response.getStatusCode());
+        System.err.println("응답 본문: " + response.getBody());
+        throw new RuntimeException("토큰 교환 실패: " + response.getStatusCode());
     }
 
     /**
