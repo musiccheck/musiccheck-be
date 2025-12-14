@@ -27,6 +27,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     
     // 구글 로그인 임시 토큰 저장소 (이메일 -> 토큰, 5분간 유효)
     private static final Map<String, String> googleLoginTokens = new ConcurrentHashMap<>();
+    // 최근 로그인한 이메일 저장 (가장 최근 1개만, 5분간 유효)
+    private static volatile String recentGoogleLoginEmail = null;
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     
     static {
@@ -75,8 +77,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             
             // 임시 토큰 저장소에 저장 (5분간 유효, 프론트엔드가 이메일로 조회 가능)
             googleLoginTokens.put(email, token);
+            // 최근 로그인한 이메일 저장
+            recentGoogleLoginEmail = email;
             // 5분 후 자동 삭제
-            scheduler.schedule(() -> googleLoginTokens.remove(email), 5, TimeUnit.MINUTES);
+            scheduler.schedule(() -> {
+                googleLoginTokens.remove(email);
+                if (recentGoogleLoginEmail != null && recentGoogleLoginEmail.equals(email)) {
+                    recentGoogleLoginEmail = null;
+                }
+            }, 5, TimeUnit.MINUTES);
             
             System.out.println("✅ [Google] JWT 토큰 쿠키 설정 완료 (프론트엔드가 credentials: 'include'로 사용 가능)");
             System.out.println("✅ [Google] 임시 토큰 저장소에 저장 완료 (이메일: " + email + ", 5분간 유효)");
@@ -120,12 +129,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private String generateSuccessHtml(String token, String email) {
         // 스포티파이처럼 단순히 완료 메시지만 표시 (Deep Link 리다이렉트 없음)
         // 프론트엔드에서 브라우저가 닫힌 후 폴링으로 로그인 상태 확인
+        // 이메일을 메타 태그와 숨겨진 필드에 포함시켜서 프론트엔드가 읽을 수 있게 함
         return String.format("""
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta name="google-login-email" content="%s">
                 <title>구글 로그인 완료</title>
                 <style>
                     body {
@@ -158,6 +169,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                     <p>구글 로그인이 완료되었습니다.</p>
                     <p style="font-size: 14px; color: #999; margin-top: 20px;">앱으로 돌아가주세요!</p>
                 </div>
+                <!-- 이메일 정보를 숨겨진 필드에 저장 (프론트엔드가 읽을 수 있도록) -->
+                <input type="hidden" id="google-login-email" value="%s">
+                <input type="hidden" id="google-login-token" value="%s">
                 <script>
                     // WebView에서 실행 중인지 확인 (카카오/네이버용)
                     if (window.ReactNativeWebView) {
@@ -169,10 +183,22 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                             email: '%s'
                         }));
                     }
+                    
+                    // 외부 브라우저에서도 이메일을 읽을 수 있도록 전역 변수에 저장
+                    window.googleLoginEmail = '%s';
+                    window.googleLoginToken = '%s';
+                    
+                    // URL에 이메일을 포함시켜서 프론트엔드가 읽을 수 있게 함 (선택적)
+                    // 현재 URL에 이미 이메일이 없을 때만 추가
+                    if (!window.location.search.includes('email=')) {
+                        const newUrl = window.location.href.split('?')[0] + '?email=' + encodeURIComponent('%s');
+                        // history.replaceState를 사용하여 URL만 변경 (페이지 리로드 없음)
+                        window.history.replaceState({}, '', newUrl);
+                    }
                 </script>
             </body>
             </html>
-            """, token, email);
+            """, email, token, email, token, email, email, email);
     }
     
     /**
@@ -181,5 +207,31 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
      */
     public static String getGoogleLoginToken(String email) {
         return googleLoginTokens.remove(email); // 조회 후 즉시 삭제 (1회용)
+    }
+    
+    /**
+     * 최근 로그인한 구글 이메일 조회 (프론트엔드용)
+     * 이메일을 모를 때 최근 로그인한 사용자의 이메일을 조회
+     */
+    public static String getRecentGoogleLoginEmail() {
+        return recentGoogleLoginEmail;
+    }
+    
+    /**
+     * 최근 로그인한 구글 사용자의 토큰 조회 (이메일 없이)
+     * 프론트엔드가 이메일을 모를 때 사용
+     */
+    public static Map<String, String> getRecentGoogleLoginToken() {
+        if (recentGoogleLoginEmail != null) {
+            String token = googleLoginTokens.remove(recentGoogleLoginEmail);
+            if (token != null) {
+                Map<String, String> result = new HashMap<>();
+                result.put("email", recentGoogleLoginEmail);
+                result.put("token", token);
+                recentGoogleLoginEmail = null; // 조회 후 삭제
+                return result;
+            }
+        }
+        return null;
     }
 }
