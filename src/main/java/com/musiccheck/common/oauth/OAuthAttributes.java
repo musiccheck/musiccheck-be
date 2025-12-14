@@ -42,7 +42,7 @@ public class OAuthAttributes {
         return OAuthAttributes.builder()
                 .name(name != null ? name : (email != null ? email.split("@")[0] : "사용자"))
                 .email(email)
-                .profile((String) attributes.get("profile"))
+                .profile((String) attributes.get("picture"))  // 구글은 picture 필드 사용
                 .attributes(attributes)
                 .nameAttributeKey(userNameAttributeName)
                 .build();
