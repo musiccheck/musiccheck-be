@@ -29,7 +29,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // 구글 로그인인 경우 HTML 반환 (스포티파이처럼)
         String requestURI = request.getRequestURI();
-        if (requestURI != null && requestURI.contains("/oauth2/code/google")) {
+        System.out.println("=== OAuth2SuccessHandler 디버깅 ===");
+        System.out.println("Request URI: " + requestURI);
+        System.out.println("Email: " + email);
+        System.out.println("Contains /oauth2/code/google: " + (requestURI != null && requestURI.contains("/oauth2/code/google")));
+        System.out.println("Contains /code/google: " + (requestURI != null && requestURI.contains("/code/google")));
+        System.out.println("===================================");
+        
+        if (requestURI != null && (requestURI.contains("/oauth2/code/google") || requestURI.contains("/code/google"))) {
             // HTML 응답 반환
             response.setContentType("text/html;charset=UTF-8");
             response.setStatus(HttpServletResponse.SC_OK);
@@ -106,15 +113,23 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                     <p style="font-size: 14px; color: #999; margin-top: 20px;">앱으로 돌아가주세요!</p>
                 </div>
                 <script>
+                    console.log('구글 로그인 HTML 페이지 로드됨');
+                    console.log('window.ReactNativeWebView 존재 여부:', typeof window.ReactNativeWebView !== 'undefined');
+                    
                     // WebView에서 실행 중인지 확인
                     if (window.ReactNativeWebView) {
-                        // WebView에 성공 메시지 전송
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                        console.log('WebView 메시지 전송 시도');
+                        const message = JSON.stringify({
                             type: 'googleCallback',
                             success: true,
                             token: '%s',
                             email: '%s'
-                        }));
+                        });
+                        console.log('전송할 메시지:', message);
+                        window.ReactNativeWebView.postMessage(message);
+                        console.log('메시지 전송 완료');
+                    } else {
+                        console.error('window.ReactNativeWebView가 없습니다!');
                     }
                 </script>
             </body>
