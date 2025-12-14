@@ -55,7 +55,7 @@ public class GoogleService {
             Map<String, Object> userInfo = getUserInfo(accessToken);
 
             // 3. OAuthAttributes 생성
-            OAuthAttributes attributes = OAuthAttributes.ofGoogle("sub", userInfo);
+            OAuthAttributes attributes = OAuthAttributes.of("google", "sub", userInfo);
             String providerUserId = String.valueOf(userInfo.get("sub"));
 
             // 4. 사용자 저장 또는 업데이트 (CustomOAuth2UserService 로직 재사용)
