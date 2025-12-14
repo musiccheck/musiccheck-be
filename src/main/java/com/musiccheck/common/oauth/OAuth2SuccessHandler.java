@@ -37,15 +37,25 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         System.out.println("===================================");
         
         if (requestURI != null && (requestURI.contains("/oauth2/code/google") || requestURI.contains("/code/google"))) {
-            // JWT 토큰을 쿠키에 설정 (프론트엔드에서 사용할 수 있도록)
+            // JWT 토큰을 쿠키에 설정 (프론트엔드에서 credentials: 'include'로 사용)
             jakarta.servlet.http.Cookie tokenCookie = new jakarta.servlet.http.Cookie("jwt_token", token);
             tokenCookie.setHttpOnly(true);
-            tokenCookie.setSecure(true); // HTTPS에서만 전송
+            tokenCookie.setSecure(true); // HTTPS에서만 전송 (프로덕션 환경)
             tokenCookie.setPath("/");
             tokenCookie.setMaxAge(60 * 60 * 24 * 7); // 7일
+            // SameSite 설정: None으로 설정하여 크로스 사이트 요청에서도 쿠키 전송 가능
+            // (외부 브라우저에서 설정된 쿠키가 앱의 API 호출에서도 사용되도록)
+            try {
+                // Java 11+ 에서는 reflection을 사용하여 SameSite 설정
+                java.lang.reflect.Method setSameSiteMethod = tokenCookie.getClass().getMethod("setAttribute", String.class, String.class);
+                setSameSiteMethod.invoke(tokenCookie, "SameSite", "None");
+            } catch (Exception e) {
+                // SameSite 설정 실패 시 로그만 출력 (Java 버전에 따라 지원되지 않을 수 있음)
+                System.out.println("⚠️ [Google] SameSite 설정 실패 (무시 가능): " + e.getMessage());
+            }
             response.addCookie(tokenCookie);
             
-            System.out.println("✅ [Google] JWT 토큰 쿠키 설정 완료");
+            System.out.println("✅ [Google] JWT 토큰 쿠키 설정 완료 (프론트엔드가 credentials: 'include'로 사용 가능)");
             
             // HTML 응답 반환
             response.setContentType("text/html;charset=UTF-8");
