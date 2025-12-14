@@ -13,6 +13,10 @@ import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Component
@@ -20,6 +24,20 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtTokenProvider jwtTokenProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    // 구글 로그인 임시 토큰 저장소 (이메일 -> 토큰, 5분간 유효)
+    private static final Map<String, String> googleLoginTokens = new ConcurrentHashMap<>();
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    
+    static {
+        // 5분마다 만료된 토큰 정리
+        scheduler.scheduleAtFixedRate(() -> {
+            // 토큰이 너무 많아지면 전체 삭제 (5분 후 자동 만료)
+            if (googleLoginTokens.size() > 100) {
+                googleLoginTokens.clear();
+            }
+        }, 5, 5, TimeUnit.MINUTES);
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
@@ -55,7 +73,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             }
             response.addCookie(tokenCookie);
             
+            // 임시 토큰 저장소에 저장 (5분간 유효, 프론트엔드가 이메일로 조회 가능)
+            googleLoginTokens.put(email, token);
+            // 5분 후 자동 삭제
+            scheduler.schedule(() -> googleLoginTokens.remove(email), 5, TimeUnit.MINUTES);
+            
             System.out.println("✅ [Google] JWT 토큰 쿠키 설정 완료 (프론트엔드가 credentials: 'include'로 사용 가능)");
+            System.out.println("✅ [Google] 임시 토큰 저장소에 저장 완료 (이메일: " + email + ", 5분간 유효)");
             
             // HTML 응답 반환
             response.setContentType("text/html;charset=UTF-8");
@@ -149,5 +173,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             </body>
             </html>
             """, token, email);
+    }
+    
+    /**
+     * 구글 로그인 임시 토큰 조회 (프론트엔드용)
+     * 외부 브라우저에서 설정된 쿠키를 앱에서 읽을 수 없으므로, 이메일로 임시 토큰 조회
+     */
+    public static String getGoogleLoginToken(String email) {
+        return googleLoginTokens.remove(email); // 조회 후 즉시 삭제 (1회용)
     }
 }
