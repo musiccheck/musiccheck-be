@@ -198,7 +198,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 </script>
             </body>
             </html>
-            """, email, token, email, token, email, email, email);
+            """, email, email, token, token, email, email, token, email);
     }
     
     /**
