@@ -1,5 +1,6 @@
 package com.musiccheck.common.config;
 
+import com.musiccheck.common.config.CustomAuthenticationEntryPoint;
 import com.musiccheck.common.jwt.JwtAuthenticationFilter;
 import com.musiccheck.common.oauth.CustomOAuth2AuthorizationRequestResolver;
 import com.musiccheck.common.oauth.CustomOAuth2UserService;
@@ -32,6 +33,7 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -50,6 +52,11 @@ public class SecurityConfig {
 
                 // JWT 필터 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // 인증 실패 시 JSON 응답 반환 (기본 HTML 로그인 페이지 대신)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                )
 
                 // 권한 설정
                 .authorizeHttpRequests(auth -> auth
