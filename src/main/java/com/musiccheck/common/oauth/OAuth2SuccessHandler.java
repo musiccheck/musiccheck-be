@@ -11,8 +11,6 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -76,109 +74,60 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     }
 
     private String generateSuccessHtml(String token, String email) {
-        try {
-            // 토큰과 이메일을 URL 인코딩
-            String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8.toString());
-            String encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8.toString());
-            
-            return String.format("""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>구글 로그인 완료</title>
-                    <style>
-                        body {
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                            margin: 0;
-                            padding: 20px;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            min-height: 100vh;
-                            background: linear-gradient(135deg, #4285f4 0%%, #34a853 100%%);
-                        }
-                        .container {
-                            text-align: center;
-                            padding: 40px;
-                            background: white;
-                            border-radius: 20px;
-                            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-                            max-width: 400px;
-                        }
-                        h2 {
-                            color: #4285f4;
-                            margin-bottom: 20px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h2>✅ 완료!</h2>
-                        <p>구글 로그인이 완료되었습니다.</p>
-                        <p style="font-size: 14px; color: #999; margin-top: 20px;">앱으로 돌아가주세요!</p>
-                    </div>
-                    <script>
-                        console.log('구글 로그인 HTML 페이지 로드됨');
-                        
-                        // WebView에서 실행 중인지 확인 (카카오/네이버용)
-                        if (window.ReactNativeWebView) {
-                            console.log('WebView 메시지 전송 시도');
-                            const message = JSON.stringify({
-                                type: 'googleCallback',
-                                success: true,
-                                token: '%s',
-                                email: '%s'
-                            });
-                            console.log('전송할 메시지:', message);
-                            window.ReactNativeWebView.postMessage(message);
-                            console.log('메시지 전송 완료');
-                        } else {
-                            // 외부 브라우저인 경우 Deep Link로 리다이렉트
-                            console.log('외부 브라우저 감지 - Deep Link로 리다이렉트');
-                            const deepLink = 'musiccheck://google-callback?success=true&token=%s&email=%s';
-                            console.log('Deep Link:', deepLink);
-                            
-                            // 즉시 리다이렉트 시도
-                            setTimeout(function() {
-                                try {
-                                    window.location.href = deepLink;
-                                    console.log('Deep Link 리다이렉트 완료');
-                                } catch (e) {
-                                    console.error('Deep Link 리다이렉트 실패:', e);
-                                    // 실패 시 사용자에게 안내
-                                    alert('앱으로 돌아가주세요. 로그인이 완료되었습니다.');
-                                }
-                            }, 1500); // 1.5초 후 리다이렉트
-                        }
-                    </script>
-                </body>
-                </html>
-                """, token, email, encodedToken, encodedEmail);
-        } catch (Exception e) {
-            System.err.println("❌ HTML 생성 오류: " + e.getMessage());
-            e.printStackTrace();
-            // 오류 발생 시 기본 HTML 반환
-            return String.format("""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>구글 로그인 완료</title>
-                </head>
-                <body>
+        // 스포티파이처럼 단순히 완료 메시지만 표시 (Deep Link 리다이렉트 없음)
+        // 프론트엔드에서 브라우저가 닫힌 후 폴링으로 로그인 상태 확인
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>구글 로그인 완료</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        background: linear-gradient(135deg, #4285f4 0%%, #34a853 100%%);
+                    }
+                    .container {
+                        text-align: center;
+                        padding: 40px;
+                        background: white;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                        max-width: 400px;
+                    }
+                    h2 {
+                        color: #4285f4;
+                        margin-bottom: 20px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
                     <h2>✅ 완료!</h2>
                     <p>구글 로그인이 완료되었습니다.</p>
-                    <p>앱으로 돌아가주세요!</p>
-                    <script>
-                        setTimeout(function() {
-                            window.location.href = 'musiccheck://google-callback?success=true';
-                        }, 1500);
-                    </script>
-                </body>
-                </html>
-                """);
-        }
+                    <p style="font-size: 14px; color: #999; margin-top: 20px;">앱으로 돌아가주세요!</p>
+                </div>
+                <script>
+                    // WebView에서 실행 중인지 확인 (카카오/네이버용)
+                    if (window.ReactNativeWebView) {
+                        // WebView에 성공 메시지 전송
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: 'googleCallback',
+                            success: true,
+                            token: '%s',
+                            email: '%s'
+                        }));
+                    }
+                </script>
+            </body>
+            </html>
+            """, token, email);
     }
 }
