@@ -244,7 +244,6 @@ public class SpotifyService {
 
         Map<String, Object> playlist = createResponse.getBody();
         String playlistId = (String) playlist.get("id");
-        String playlistUrl = (String) playlist.get("external_urls");
 
         // 3. 트랙 추가
         if (trackUris != null && !trackUris.isEmpty()) {
@@ -263,11 +262,10 @@ public class SpotifyService {
         }
 
         // 플레이리스트 URL 반환
-        if (playlistUrl != null) {
-            Map<String, String> externalUrls = (Map<String, String>) playlist.get("external_urls");
-            if (externalUrls != null) {
-                return externalUrls.get("spotify");
-            }
+        @SuppressWarnings("unchecked")
+        Map<String, String> externalUrls = (Map<String, String>) playlist.get("external_urls");
+        if (externalUrls != null && externalUrls.get("spotify") != null) {
+            return externalUrls.get("spotify");
         }
 
         // URL이 없으면 기본 URL 생성
