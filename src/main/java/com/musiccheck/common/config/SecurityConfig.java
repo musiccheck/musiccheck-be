@@ -1,6 +1,7 @@
 package com.musiccheck.common.config;
 
 import com.musiccheck.common.jwt.JwtAuthenticationFilter;
+import com.musiccheck.common.oauth.CustomOAuth2AuthorizationRequestResolver;
 import com.musiccheck.common.oauth.CustomOAuth2UserService;
 import com.musiccheck.common.oauth.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -27,6 +31,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ClientRegistrationRepository clientRegistrationRepository;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -58,11 +63,25 @@ public class SecurityConfig {
 
                 // OAuth2 로그인 설정 (카카오/네이버/구글)
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(authorization -> authorization
+                                .authorizationRequestResolver(customOAuth2AuthorizationRequestResolver())
+                        )
                         .successHandler(oAuth2SuccessHandler)
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public OAuth2AuthorizationRequestResolver customOAuth2AuthorizationRequestResolver() {
+        // 기본 리졸버를 래핑하여 구글 로그인 시 prompt=select_account 추가
+        OAuth2AuthorizationRequestResolver defaultResolver = 
+            new DefaultOAuth2AuthorizationRequestResolver(
+                clientRegistrationRepository,
+                "/oauth2/authorization"
+            );
+        return new CustomOAuth2AuthorizationRequestResolver(defaultResolver);
     }
 
     @Bean
