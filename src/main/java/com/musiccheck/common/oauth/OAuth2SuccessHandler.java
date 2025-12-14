@@ -25,32 +25,31 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = extractEmail(oAuth2User);
-
         String token = jwtTokenProvider.createToken(email);
 
-        // 구글 로그인인지 확인 (URI에 /code/google이 포함되어 있는지)
-        String requestUri = request.getRequestURI();
-        boolean isGoogle = requestUri != null && requestUri.contains("/code/google");
-
-        if (isGoogle) {
-            // 구글 로그인: HTML 페이지 반환 (WebView용)
+        // 구글 로그인인 경우 HTML 반환 (스포티파이처럼)
+        String requestURI = request.getRequestURI();
+        if (requestURI != null && requestURI.contains("/oauth2/code/google")) {
+            // HTML 응답 반환
+            response.setContentType("text/html;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_OK);
+            
             String html = generateSuccessHtml(token, email);
-            response.setContentType("text/html; charset=UTF-8");
-            response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write(html);
-        } else {
-            // 네이버/카카오 로그인: JSON 응답 반환 (기존 방식)
-            response.setContentType("application/json;charset=UTF-8");
-            response.setStatus(HttpServletResponse.SC_OK);
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("token", token);
-            result.put("email", email);
-            result.put("message", "로그인 성공");
-
-            objectMapper.writeValue(response.getWriter(), result);
+            return;
         }
+
+        // 카카오, 네이버는 기존대로 JSON 반환
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(HttpServletResponse.SC_OK);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("token", token);
+        result.put("email", email);
+        result.put("message", "로그인 성공");
+
+        objectMapper.writeValue(response.getWriter(), result);
     }
 
     private String extractEmail(OAuth2User oAuth2User) {
@@ -67,9 +66,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         return email;
     }
 
-    /**
-     * 구글 로그인 성공 시 HTML 페이지 생성 (WebView용)
-     */
     private String generateSuccessHtml(String token, String email) {
         return String.format("""
             <!DOCTYPE html>
@@ -100,19 +96,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                     h2 {
                         color: #4285f4;
                         margin-bottom: 20px;
-                    }
-                    .btn {
-                        display: inline-block;
-                        margin-top: 20px;
-                        padding: 12px 30px;
-                        background-color: #4285f4;
-                        color: white;
-                        text-decoration: none;
-                        border-radius: 25px;
-                        font-weight: 600;
-                        border: none;
-                        cursor: pointer;
-                        font-size: 16px;
                     }
                 </style>
             </head>
