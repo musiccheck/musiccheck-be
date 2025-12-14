@@ -35,6 +35,12 @@ public class User {
     @Column(name = "spotify_connected")
     private String spotifyConnected = "no";
 
+    @Column(name = "spotify_access_token", length = 1000)
+    private String spotifyAccessToken;
+
+    @Column(name = "spotify_refresh_token", length = 1000)
+    private String spotifyRefreshToken;
+
     @Transient
     private Role role;
 
@@ -65,6 +71,16 @@ public class User {
 
     public void setSpotifyConnected(Boolean connected) {
         this.spotifyConnected = connected ? "yes" : "no";
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void setSpotifyAccessToken(String accessToken) {
+        this.spotifyAccessToken = accessToken;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void setSpotifyRefreshToken(String refreshToken) {
+        this.spotifyRefreshToken = refreshToken;
         this.updatedAt = LocalDateTime.now();
     }
 

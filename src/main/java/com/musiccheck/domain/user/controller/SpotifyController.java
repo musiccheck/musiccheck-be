@@ -5,9 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -237,5 +237,78 @@ public class SpotifyController {
             </body>
             </html>
             """, message, message);
+    }
+
+    /**
+     * 스포티파이 플레이리스트 생성 엔드포인트
+     */
+    @PostMapping("/api/spotify/create-playlist")
+    public ResponseEntity<Map<String, Object>> createPlaylist(
+            @RequestBody Map<String, Object> requestBody,
+            Authentication authentication) {
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "로그인이 필요합니다.");
+            return ResponseEntity.status(401).body(error);
+        }
+
+        try {
+            String email = authentication.getName();
+            String bookTitle = (String) requestBody.get("bookTitle");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> songs = (List<Map<String, Object>>) requestBody.get("songs");
+
+            if (bookTitle == null || songs == null || songs.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "필수 파라미터가 누락되었습니다.");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            // 플레이리스트 이름 생성
+            String playlistName = bookTitle + " - Music Check 추천";
+
+            // 노래 URI 리스트 생성 (spotify:track:xxx 형식)
+            List<String> trackUris = songs.stream()
+                    .map(song -> {
+                        String trackId = (String) song.get("trackId");
+                        if (trackId == null) {
+                            trackId = (String) song.get("id");
+                        }
+                        if (trackId != null && !trackId.startsWith("spotify:track:")) {
+                            return "spotify:track:" + trackId;
+                        }
+                        return trackId;
+                    })
+                    .filter(uri -> uri != null && uri.startsWith("spotify:track:"))
+                    .toList();
+
+            if (trackUris.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "유효한 스포티파이 트랙 ID가 없습니다.");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            // 플레이리스트 생성
+            String spotifyUrl = spotifyService.createPlaylist(email, playlistName, trackUris);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("spotifyUrl", spotifyUrl);
+            result.put("message", "플레이리스트가 생성되었습니다.");
+
+            return ResponseEntity.ok(result);
+
+        } catch (IllegalStateException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            System.err.println("❌ 플레이리스트 생성 오류: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "플레이리스트 생성 중 오류가 발생했습니다: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
     }
 }
