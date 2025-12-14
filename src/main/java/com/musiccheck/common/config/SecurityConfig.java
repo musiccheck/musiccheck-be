@@ -64,7 +64,11 @@ public class SecurityConfig {
                 // OAuth2 로그인 설정 (카카오/네이버/구글)
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization
+                                .baseUri("/oauth2/authorization")  // 명시적으로 baseUri 설정
                                 .authorizationRequestResolver(customOAuth2AuthorizationRequestResolver())
+                        )
+                        .redirectionEndpoint(redirection -> redirection
+                                .baseUri("/login/oauth2/code/*")  // 콜백 URI 패턴 명시
                         )
                         .successHandler(oAuth2SuccessHandler)
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
