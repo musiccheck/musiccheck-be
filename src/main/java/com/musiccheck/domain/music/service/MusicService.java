@@ -25,29 +25,109 @@ public class MusicService {
     private final BookRepository bookRepository;
 
     public List<MusicDto> recommend(String isbn, Long userId) {
+        // 가중치 설정: 유사도 0.7, 좋아요 0.3
+        final double SIMILARITY_WEIGHT = 0.7;
+        final double LIKE_WEIGHT = 0.3;
 
-        // 1) NativeQuery로 벡터 유사도 기준 추천된 음악 30개 받기 (좋아요 개수 포함)
+        // 1) NativeQuery로 벡터 유사도 기준 추천된 음악 30개 받기 (좋아요 개수, 유사도 점수 포함)
         List<Object[]> rows = musicRepository.recommendByIsbn(isbn, userId);
 
-        // 2) Object[] → DTO로 변환 (좋아요 개수 포함)
-        List<MusicDto> musicList = rows.stream()
-                .map(r -> new MusicDto(
+        // 2) Object[] → 임시 데이터 구조로 변환 (유사도 점수와 좋아요 개수 포함)
+        List<MusicWithScore> musicWithScores = rows.stream()
+                .map(r -> new MusicWithScore(
                         (String) r[0],  // track_id
                         (String) r[1],  // track_name
                         (String) r[2],  // artist_name
                         (String) r[3],  // image_url
                         (String) r[4], // external_url
-                        ((Number) r[5]).longValue()  // like_count
+                        ((Number) r[5]).longValue(),  // like_count
+                        ((Number) r[6]).doubleValue()  // similarity_score (negative inner product, 작을수록 유사)
                 ))
                 .collect(Collectors.toList());
 
-        // 3) 좋아요 개수 기준으로 내림차순 정렬
-        musicList.sort(Comparator.comparing(MusicDto::likeCount).reversed());
+        // 3) 유사도 점수와 좋아요 개수의 최소/최대값 찾기 (정규화용)
+        double minSimilarity = musicWithScores.stream()
+                .mapToDouble(m -> m.similarityScore)
+                .min()
+                .orElse(0.0);
+        double maxSimilarity = musicWithScores.stream()
+                .mapToDouble(m -> m.similarityScore)
+                .max()
+                .orElse(1.0);
+        long maxLikeCount = musicWithScores.stream()
+                .mapToLong(m -> m.likeCount)
+                .max()
+                .orElse(1L);
 
-        // 4) playlist_generation_log 저장 (다음 단계에서 구현)
+        // 4) 가중치 기반 점수 계산 및 정렬
+        List<MusicDto> musicList = musicWithScores.stream()
+                .map(m -> {
+                    // 유사도 점수 정규화 (0-1 범위, 작을수록 유사하므로 역변환)
+                    double normalizedSimilarity = maxSimilarity > minSimilarity
+                            ? 1.0 - ((m.similarityScore - minSimilarity) / (maxSimilarity - minSimilarity))
+                            : 1.0;
+                    
+                    // 좋아요 개수 정규화 (0-1 범위)
+                    double normalizedLike = maxLikeCount > 0
+                            ? (double) m.likeCount / maxLikeCount
+                            : 0.0;
+                    
+                    // 가중치 기반 최종 점수 계산
+                    double finalScore = (normalizedSimilarity * SIMILARITY_WEIGHT) + (normalizedLike * LIKE_WEIGHT);
+                    
+                    return new MusicWithFinalScore(
+                            new MusicDto(
+                                    m.trackId,
+                                    m.trackName,
+                                    m.artistName,
+                                    m.imageUrl,
+                                    m.externalUrl,
+                                    m.likeCount
+                            ),
+                            finalScore
+                    );
+                })
+                .sorted(Comparator.comparing((MusicWithFinalScore m) -> m.finalScore).reversed())
+                .map(m -> m.dto)
+                .collect(Collectors.toList());
+
+        // 5) playlist_generation_log 저장 (다음 단계에서 구현)
         // playlistLogService.save(userId, isbn, musicList);
 
         return musicList;
+    }
+
+    // 임시 데이터 구조 (유사도 점수 포함)
+    private static class MusicWithScore {
+        String trackId;
+        String trackName;
+        String artistName;
+        String imageUrl;
+        String externalUrl;
+        long likeCount;
+        double similarityScore;
+
+        MusicWithScore(String trackId, String trackName, String artistName, String imageUrl, 
+                      String externalUrl, long likeCount, double similarityScore) {
+            this.trackId = trackId;
+            this.trackName = trackName;
+            this.artistName = artistName;
+            this.imageUrl = imageUrl;
+            this.externalUrl = externalUrl;
+            this.likeCount = likeCount;
+            this.similarityScore = similarityScore;
+        }
+    }
+
+    // 최종 점수 포함 데이터 구조
+    private static class MusicWithFinalScore {
+        MusicDto dto;
+        double finalScore;
+
+        MusicWithFinalScore(MusicDto dto, double finalScore) {
+            this.dto = dto;
+            this.finalScore = finalScore;
+        }
     }
 
     // 좋아요/싫어요 저장 또는 업데이트

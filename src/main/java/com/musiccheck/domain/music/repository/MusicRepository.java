@@ -16,7 +16,16 @@ public interface MusicRepository extends JpaRepository<MusicEntity, String> {
             m.artist_name,
             m.image_url,
             m.external_url,
-            COALESCE(COUNT(CASE WHEN uf.feedback = 'like' THEN 1 END), 0) as like_count
+            COALESCE(COUNT(CASE WHEN uf.feedback = 'like' THEN 1 END), 0) as like_count,
+            em.vector <#> (
+                SELECT vector
+                FROM embedding
+                WHERE embedding_id = (
+                    SELECT embedding_id
+                    FROM book
+                    WHERE isbn = :isbn
+                )
+            ) as similarity_score
         FROM music m
         JOIN embedding em ON em.embedding_id = m.embedding_id
         LEFT JOIN user_feedback uf ON uf.music_id = m.track_id AND uf.book_id = :isbn
@@ -29,15 +38,7 @@ public interface MusicRepository extends JpaRepository<MusicEntity, String> {
             AND uf_dislike.feedback = 'dislike'
         ))
         GROUP BY m.track_id, m.track_name, m.artist_name, m.image_url, m.external_url, em.vector
-        ORDER BY em.vector <#> (
-            SELECT vector
-            FROM embedding
-            WHERE embedding_id = (
-                SELECT embedding_id
-                FROM book
-                WHERE isbn = :isbn
-            )
-        )
+        ORDER BY similarity_score
         LIMIT 30
         """,
             nativeQuery = true)
