@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,7 +32,7 @@ public class MusicService {
         final double SIMILARITY_WEIGHT = 0.1;
         final double LIKE_WEIGHT = 0.9;
 
-        // 1) NativeQuery로 벡터 유사도 기준 추천된 음악 30개 받기 (좋아요 개수, 유사도 점수 포함)
+        // 1) NativeQuery로 벡터 유사도 기준 추천된 음악 300개 받기 (좋아요 개수, 유사도 점수 포함)
         List<Object[]> rows = musicRepository.recommendByIsbn(isbn, userId);
 
         // 2) Object[] → 임시 데이터 구조로 변환 (유사도 점수와 좋아요 개수 포함)
@@ -93,7 +94,25 @@ public class MusicService {
                 .map(m -> m.dto)
                 .collect(Collectors.toList());
 
-        // 5) playlist_generation_log 저장 (다음 단계에서 구현)
+        // 5) 사용자의 싫어요 곡 필터링 (쿼리에서 제거했으므로 여기서 적용)
+        if (userId != null) {
+            List<UserFeedback> dislikedFeedbacks = userFeedbackRepository.findByUserIdAndBookIdAndFeedback(userId, isbn, "dislike");
+            Set<String> dislikedTrackIds = dislikedFeedbacks.stream()
+                    .map(UserFeedback::getMusicId)
+                    .collect(Collectors.toSet());
+            
+            musicList = musicList.stream()
+                    .filter(m -> !dislikedTrackIds.contains(m.trackId()))
+                    .limit(30)  // 최종 30개만 반환
+                    .collect(Collectors.toList());
+        } else {
+            // userId가 null이면 30개만 반환
+            musicList = musicList.stream()
+                    .limit(30)
+                    .collect(Collectors.toList());
+        }
+
+        // 6) playlist_generation_log 저장 (다음 단계에서 구현)
         // playlistLogService.save(userId, isbn, musicList);
 
         return musicList;
