@@ -28,13 +28,18 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> getUsers(Authentication authentication) {
         // 인증 확인
         if (authentication == null || !authentication.isAuthenticated()) {
+            System.out.println("⚠️ [Admin] 인증 실패: 로그인이 필요합니다.");
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "로그인이 필요합니다.");
             return ResponseEntity.status(401).body(error);
         }
 
-        // 전체 사용자 조회
+        // 일반 사용자 수 조회 (SELECT COUNT(*) FROM user)
+        long totalCount = userRepository.count();
+        System.out.println("✅ [Admin] 일반 사용자 수 조회: " + totalCount + "명");
+        
+        // 전체 사용자 목록 조회
         List<User> users = userRepository.findAll();
         
         // DTO로 변환
@@ -45,9 +50,10 @@ public class AdminController {
         // 응답 생성
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("totalCount", users.size());  // 전체 사용자 수
+        response.put("totalCount", totalCount);  // COUNT(*) 쿼리로 조회한 일반 사용자 수
         response.put("users", userDtos);
 
+        System.out.println("✅ [Admin] 응답 전송: totalCount=" + totalCount + ", users.size()=" + userDtos.size());
         return ResponseEntity.ok(response);
     }
 }
