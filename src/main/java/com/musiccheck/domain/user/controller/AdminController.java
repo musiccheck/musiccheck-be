@@ -6,7 +6,6 @@ import com.musiccheck.domain.user.entity.User;
 import com.musiccheck.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -77,22 +76,12 @@ public class AdminController {
 
     /**
      * 전체 사용자 목록 조회 (관리자용)
+     * 토큰 없이 접근 가능 (프론트엔드에서 admin/admin1234로 인증 후 호출)
      * 응답에 totalCount 필드 포함
      */
     @GetMapping("/users")
-    public ResponseEntity<Map<String, Object>> getUsers(Authentication authentication) {
-        System.out.println("🔍 [Admin] /api/admin/users 요청 받음");
-        System.out.println("🔍 [Admin] Authentication: " + (authentication != null ? authentication.getName() : "null"));
-        System.out.println("🔍 [Admin] isAuthenticated: " + (authentication != null ? authentication.isAuthenticated() : "false"));
-        
-        // 인증 확인
-        if (authentication == null || !authentication.isAuthenticated()) {
-            System.out.println("⚠️ [Admin] 인증 실패: 로그인이 필요합니다.");
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("error", "로그인이 필요합니다.");
-            return ResponseEntity.status(401).body(error);
-        }
+    public ResponseEntity<Map<String, Object>> getUsers() {
+        System.out.println("🔍 [Admin] /api/admin/users 요청 받음 (인증 없이 접근)");
 
         // 일반 사용자 수 조회 (SELECT COUNT(*) FROM user)
         long totalCount = userRepository.count();
@@ -114,7 +103,6 @@ public class AdminController {
         response.put("users", userDtos);
 
         System.out.println("✅ [Admin] 응답 전송: success=true, totalCount=" + totalCount + ", users.size()=" + userDtos.size());
-        System.out.println("✅ [Admin] 응답 JSON: " + response.toString());
         return ResponseEntity.ok(response);
     }
 }
