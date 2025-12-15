@@ -27,9 +27,9 @@ public class MusicService {
     private final BookRepository bookRepository;
 
     public List<MusicDto> recommend(String isbn, Long userId) {
-        // 가중치 설정: 유사도 0.3, 좋아요 0.7
-        final double SIMILARITY_WEIGHT = 0.3;
-        final double LIKE_WEIGHT = 0.7;
+        // 가중치 설정: 유사도 0.1, 좋아요 0.9
+        final double SIMILARITY_WEIGHT = 0.1;
+        final double LIKE_WEIGHT = 0.9;
 
         // 1) NativeQuery로 벡터 유사도 기준 추천된 음악 30개 받기 (좋아요 개수, 유사도 점수 포함)
         List<Object[]> rows = musicRepository.recommendByIsbn(isbn, userId);
