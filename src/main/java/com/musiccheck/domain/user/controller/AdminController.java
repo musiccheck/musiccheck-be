@@ -1,5 +1,6 @@
 package com.musiccheck.domain.user.controller;
 
+import com.musiccheck.common.jwt.JwtTokenProvider;
 import com.musiccheck.domain.user.dto.AdminUserDto;
 import com.musiccheck.domain.user.entity.User;
 import com.musiccheck.domain.user.repository.UserRepository;
@@ -19,6 +20,12 @@ import java.util.stream.Collectors;
 public class AdminController {
 
     private final UserRepository userRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+    
+    // 관리자 계정 정보 (하드코딩, 나중에 DB로 변경 가능)
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String ADMIN_PASSWORD = "admin1234";
+    private static final String ADMIN_EMAIL = "admin@musiccheck.store"; // 관리자 이메일
 
     /**
      * 전체 사용자 목록 조회 (관리자용)
