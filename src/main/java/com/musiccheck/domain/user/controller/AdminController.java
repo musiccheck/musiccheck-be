@@ -28,6 +28,54 @@ public class AdminController {
     private static final String ADMIN_EMAIL = "admin@musiccheck.store"; // 관리자 이메일
 
     /**
+     * 관리자 로그인 API
+     * username/password로 인증 후 JWT 토큰 발급
+     */
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, Object>> adminLogin(@RequestBody Map<String, String> credentials) {
+        System.out.println("🔍 [Admin] 로그인 요청 받음");
+        
+        String username = credentials.get("username");
+        String password = credentials.get("password");
+        
+        System.out.println("🔍 [Admin] 입력된 아이디: " + username);
+        System.out.println("🔍 [Admin] 입력된 비밀번호: " + (password != null ? "***" : "null"));
+        
+        // 입력값 검증
+        if (username == null || password == null || username.trim().isEmpty() || password.trim().isEmpty()) {
+            System.out.println("⚠️ [Admin] 입력값 누락");
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "아이디와 비밀번호를 입력해주세요.");
+            return ResponseEntity.status(400).body(error);
+        }
+        
+        // 관리자 인증
+        String trimmedUsername = username.trim();
+        String trimmedPassword = password.trim();
+        
+        if (!ADMIN_USERNAME.equals(trimmedUsername) || !ADMIN_PASSWORD.equals(trimmedPassword)) {
+            System.out.println("⚠️ [Admin] 인증 실패: 아이디 또는 비밀번호 불일치");
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "아이디 또는 비밀번호가 올바르지 않습니다.");
+            return ResponseEntity.status(401).body(error);
+        }
+        
+        // JWT 토큰 발급
+        String token = jwtTokenProvider.createToken(ADMIN_EMAIL);
+        System.out.println("✅ [Admin] 인증 성공, JWT 토큰 발급 완료");
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("token", token);
+        response.put("email", ADMIN_EMAIL);
+        response.put("message", "관리자 로그인 성공");
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * 전체 사용자 목록 조회 (관리자용)
      * 응답에 totalCount 필드 포함
      */
