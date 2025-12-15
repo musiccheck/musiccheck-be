@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,10 +33,21 @@ public class MusicService {
         final double SIMILARITY_WEIGHT = 0.1;
         final double LIKE_WEIGHT = 0.9;
 
-        // 1) NativeQuery로 벡터 유사도 기준 추천된 음악 300개 받기 (좋아요 개수, 유사도 점수 포함)
+        // 1) 사용자의 싫어요 곡 목록 먼저 조회 (필터링용)
+        final Set<String> dislikedTrackIds;
+        if (userId != null) {
+            List<UserFeedback> dislikedFeedbacks = userFeedbackRepository.findByUserIdAndBookIdAndFeedback(userId, isbn, "dislike");
+            dislikedTrackIds = dislikedFeedbacks.stream()
+                    .map(UserFeedback::getMusicId)
+                    .collect(Collectors.toSet());
+        } else {
+            dislikedTrackIds = new HashSet<>();
+        }
+
+        // 2) NativeQuery로 전체 음악 조회 (좋아요 개수, 유사도 점수 포함)
         List<Object[]> rows = musicRepository.recommendByIsbn(isbn, userId);
 
-        // 2) Object[] → 임시 데이터 구조로 변환 (유사도 점수와 좋아요 개수 포함)
+        // 3) Object[] → 임시 데이터 구조로 변환 및 싫어요 필터링
         List<MusicWithScore> musicWithScores = rows.stream()
                 .map(r -> new MusicWithScore(
                         (String) r[0],  // track_id
@@ -46,9 +58,10 @@ public class MusicService {
                         ((Number) r[5]).longValue(),  // like_count
                         ((Number) r[6]).doubleValue()  // similarity_score (negative inner product, 작을수록 유사)
                 ))
+                .filter(m -> !dislikedTrackIds.contains(m.trackId))  // 싫어요 곡 제외
                 .collect(Collectors.toList());
 
-        // 3) 유사도 점수와 좋아요 개수의 최소/최대값 찾기 (정규화용)
+        // 4) 유사도 점수와 좋아요 개수의 최소/최대값 찾기 (정규화용)
         double minSimilarity = musicWithScores.stream()
                 .mapToDouble(m -> m.similarityScore)
                 .min()
@@ -62,7 +75,7 @@ public class MusicService {
                 .max()
                 .orElse(1L);
 
-        // 4) 가중치 기반 점수 계산 및 정렬
+        // 5) 가중치 기반 점수 계산 및 정렬 후 30개만 반환
         List<MusicDto> musicList = musicWithScores.stream()
                 .map(m -> {
                     // 유사도 점수 정규화 (0-1 범위, 작을수록 유사하므로 역변환)
@@ -91,26 +104,9 @@ public class MusicService {
                     );
                 })
                 .sorted(Comparator.comparing((MusicWithFinalScore m) -> m.finalScore).reversed())
+                .limit(30)  // 최종 30개만 반환
                 .map(m -> m.dto)
                 .collect(Collectors.toList());
-
-        // 5) 사용자의 싫어요 곡 필터링 (쿼리에서 제거했으므로 여기서 적용)
-        if (userId != null) {
-            List<UserFeedback> dislikedFeedbacks = userFeedbackRepository.findByUserIdAndBookIdAndFeedback(userId, isbn, "dislike");
-            Set<String> dislikedTrackIds = dislikedFeedbacks.stream()
-                    .map(UserFeedback::getMusicId)
-                    .collect(Collectors.toSet());
-            
-            musicList = musicList.stream()
-                    .filter(m -> !dislikedTrackIds.contains(m.trackId()))
-                    .limit(30)  // 최종 30개만 반환
-                    .collect(Collectors.toList());
-        } else {
-            // userId가 null이면 30개만 반환
-            musicList = musicList.stream()
-                    .limit(30)
-                    .collect(Collectors.toList());
-        }
 
         // 6) playlist_generation_log 저장 (다음 단계에서 구현)
         // playlistLogService.save(userId, isbn, musicList);
