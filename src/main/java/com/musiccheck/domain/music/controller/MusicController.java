@@ -77,6 +77,42 @@ public class MusicController {
         return ResponseEntity.ok(response);
     }
 
+    // 좋아요 목록 조회 (특정 책)
+    @GetMapping("/api/likes/liked")
+    public ResponseEntity<Map<String, Object>> getLikedSongs(
+            @RequestParam(required = false) String bookId,
+            Authentication authentication
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "로그인이 필요합니다.");
+            error.put("status", 401);
+            return ResponseEntity.status(401).body(error);
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+
+        // bookId가 없으면 에러 반환
+        if (bookId == null || bookId.trim().isEmpty()) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "bookId 파라미터가 필요합니다.");
+            error.put("status", 400);
+            return ResponseEntity.status(400).body(error);
+        }
+
+        List<Map<String, Object>> likedSongs = musicService.getLikedSongs(user.getId(), bookId.trim());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("likedSongs", likedSongs);
+        
+        return ResponseEntity.ok(response);
+    }
+
     // 싫어요 목록 조회
     @GetMapping("/api/likes/disliked")
     public ResponseEntity<List<DislikedSongDto>> getDislikedSongs(Authentication authentication) {

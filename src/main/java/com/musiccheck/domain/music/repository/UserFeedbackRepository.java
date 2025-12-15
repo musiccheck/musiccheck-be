@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface UserFeedbackRepository extends JpaRepository<UserFeedback, Long> {
     Optional<UserFeedback> findByUserIdAndBookIdAndMusicId(Long userId, String bookId, String musicId);
     List<UserFeedback> findByUserIdAndFeedback(Long userId, String feedback);
+    List<UserFeedback> findByUserIdAndBookIdAndFeedback(Long userId, String bookId, String feedback);
     void deleteByUserId(Long userId);
 }
 

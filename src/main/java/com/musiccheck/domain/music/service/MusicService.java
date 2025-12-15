@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -147,6 +149,25 @@ public class MusicService {
                             userFeedbackRepository.save(newFeedback);
                         }
                 );
+    }
+
+    // 좋아요 목록 조회 (특정 책)
+    public List<Map<String, Object>> getLikedSongs(Long userId, String bookId) {
+        // 1) 유저의 특정 책에 대한 좋아요 피드백 목록 조회
+        List<UserFeedback> likedFeedbacks = userFeedbackRepository.findByUserIdAndBookIdAndFeedback(userId, bookId, "like");
+
+        // 2) 각 피드백을 Map으로 변환 (프론트엔드 요구사항에 맞춤)
+        return likedFeedbacks.stream()
+                .map(feedback -> {
+                    Map<String, Object> likedSong = new HashMap<>();
+                    likedSong.put("musicId", feedback.getMusicId());
+                    likedSong.put("trackId", feedback.getMusicId()); // trackId와 musicId 동일
+                    likedSong.put("bookId", feedback.getBookId());
+                    likedSong.put("isbn", feedback.getBookId()); // bookId와 isbn 동일
+                    likedSong.put("feedbackId", feedback.getFeedbackId());
+                    return likedSong;
+                })
+                .collect(Collectors.toList());
     }
 
     // 싫어요 목록 조회
