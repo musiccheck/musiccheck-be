@@ -26,6 +26,10 @@ public class AdminController {
      */
     @GetMapping("/users")
     public ResponseEntity<Map<String, Object>> getUsers(Authentication authentication) {
+        System.out.println("🔍 [Admin] /api/admin/users 요청 받음");
+        System.out.println("🔍 [Admin] Authentication: " + (authentication != null ? authentication.getName() : "null"));
+        System.out.println("🔍 [Admin] isAuthenticated: " + (authentication != null ? authentication.isAuthenticated() : "false"));
+        
         // 인증 확인
         if (authentication == null || !authentication.isAuthenticated()) {
             System.out.println("⚠️ [Admin] 인증 실패: 로그인이 필요합니다.");
@@ -41,6 +45,7 @@ public class AdminController {
         
         // 전체 사용자 목록 조회
         List<User> users = userRepository.findAll();
+        System.out.println("✅ [Admin] 전체 사용자 목록 조회: " + users.size() + "명");
         
         // DTO로 변환
         List<AdminUserDto> userDtos = users.stream()
@@ -53,7 +58,8 @@ public class AdminController {
         response.put("totalCount", totalCount);  // COUNT(*) 쿼리로 조회한 일반 사용자 수
         response.put("users", userDtos);
 
-        System.out.println("✅ [Admin] 응답 전송: totalCount=" + totalCount + ", users.size()=" + userDtos.size());
+        System.out.println("✅ [Admin] 응답 전송: success=true, totalCount=" + totalCount + ", users.size()=" + userDtos.size());
+        System.out.println("✅ [Admin] 응답 JSON: " + response.toString());
         return ResponseEntity.ok(response);
     }
 }
