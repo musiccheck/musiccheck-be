@@ -29,17 +29,9 @@ public interface MusicRepository extends JpaRepository<MusicEntity, String> {
         FROM music m
         JOIN embedding em ON em.embedding_id = m.embedding_id
         LEFT JOIN user_feedback uf ON uf.music_id = m.track_id AND uf.book_id = :isbn
-        WHERE (:userId IS NULL OR NOT EXISTS (
-            SELECT 1 
-            FROM user_feedback uf_dislike 
-            WHERE uf_dislike.user_id = :userId 
-            AND uf_dislike.book_id = :isbn 
-            AND uf_dislike.music_id = m.track_id 
-            AND uf_dislike.feedback = 'dislike'
-        ))
         GROUP BY m.track_id, m.track_name, m.artist_name, m.image_url, m.external_url, em.vector
         ORDER BY similarity_score
-        LIMIT 30
+        LIMIT 50
         """,
             nativeQuery = true)
     List<Object[]> recommendByIsbn(@Param("isbn") String isbn, @Param("userId") Long userId);

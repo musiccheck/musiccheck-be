@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -79,8 +80,9 @@ public class MusicController {
 
     // 좋아요 목록 조회 (특정 책)
     @GetMapping("/api/likes/liked")
-    public ResponseEntity<Map<String, Object>> getLikedSongs(
+    public ResponseEntity<?> getLikedSongs(
             @RequestParam(required = false) String bookId,
+            @RequestParam(required = false, defaultValue = "detailed") String format,
             Authentication authentication
     ) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -104,13 +106,28 @@ public class MusicController {
             return ResponseEntity.status(400).body(error);
         }
 
-        List<Map<String, Object>> likedSongs = musicService.getLikedSongs(user.getId(), bookId.trim());
+        List<Map<String, Object>> likedSongsDetailed = musicService.getLikedSongs(user.getId(), bookId.trim());
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("likedSongs", likedSongs);
-        
-        return ResponseEntity.ok(response);
+        // format 파라미터에 따라 응답 형식 변경
+        if ("simple".equals(format)) {
+            // 옵션 1: 단순 배열 형식
+            List<String> likedSongsSimple = likedSongsDetailed.stream()
+                    .map(song -> (String) song.get("trackId"))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(likedSongsSimple);
+        } else if ("array".equals(format)) {
+            // 단순 배열 형식 (success 없이)
+            List<String> likedSongsArray = likedSongsDetailed.stream()
+                    .map(song -> (String) song.get("trackId"))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(likedSongsArray);
+        } else {
+            // 옵션 2: 상세 정보 포함 (기본값)
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("likedSongs", likedSongsDetailed);
+            return ResponseEntity.ok(response);
+        }
     }
 
     // 싫어요 목록 조회
