@@ -55,7 +55,8 @@ public class SpotifyController {
                     "&response_type=code" +
                     "&redirect_uri=" + encodedRedirectUri +
                     "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8.toString()) +
-                    "&state=" + state;
+                    "&state=" + state +
+                    "&prompt=login";  // 항상 로그인 화면 표시 (계정 선택 가능)
             
             System.out.println("최종 authUrl: " + authUrl);
             System.out.println("===================================");
