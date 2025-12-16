@@ -64,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/spotify/callback").permitAll()  // 스포티파이 콜백은 인증 불필요 (state로 사용자 식별)
                         .requestMatchers("/api/user/google-token").permitAll()  // 구글 로그인 임시 토큰 조회 (인증 불필요)
                         .requestMatchers("/api/admin/login").permitAll()  // 관리자 로그인 API (인증 불필요)
+                        .requestMatchers("/api/admin/users").permitAll()  // 관리자 사용자 목록 조회 (인증 불필요)
                         .requestMatchers("/api/user/me", "/api/user", "/api/likes", "/api/likes/disliked", "/api/likes/**", "/api/search/books/*/select", "/api/search/recent", "/api/books/*/playlist", "/api/spotify/connect", "/api/spotify/create-playlist", "/api/admin/**").authenticated() // 인증 필요한 API
                         .requestMatchers("/private/**").authenticated()
                         .anyRequest().permitAll()
