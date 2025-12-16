@@ -29,9 +29,9 @@ public class MusicService {
     private final BookRepository bookRepository;
 
     public List<MusicDto> recommend(String isbn, Long userId) {
-        // 가중치 설정: 유사도 0.1, 좋아요 0.9
-        final double SIMILARITY_WEIGHT = 0.1;
-        final double LIKE_WEIGHT = 0.9;
+        // 가중치 설정: 유사도 0.3, 좋아요 0.7
+        final double SIMILARITY_WEIGHT = 0.3;
+        final double LIKE_WEIGHT = 0.7;
 
         // 1) 사용자의 싫어요 곡 목록 먼저 조회 (필터링용)
         final Set<String> dislikedTrackIds;
